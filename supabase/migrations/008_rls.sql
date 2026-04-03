@@ -132,6 +132,20 @@ CREATE POLICY tickets_contractor_update ON tickets
     AND (SELECT role FROM profiles WHERE id = auth.uid()) = 'contractor'
   );
 
+-- Mukadam: see only assigned tickets
+CREATE POLICY tickets_mukadam_select ON tickets
+  FOR SELECT USING (
+    assigned_mukadam = auth.uid()
+    AND (SELECT role FROM profiles WHERE id = auth.uid()) = 'mukadam'
+  );
+
+-- Mukadam: update only their assigned tickets (photo upload)
+CREATE POLICY tickets_mukadam_update ON tickets
+  FOR UPDATE USING (
+    assigned_mukadam = auth.uid()
+    AND (SELECT role FROM profiles WHERE id = auth.uid()) = 'mukadam'
+  );
+
 -- Accounts: read-only on audit_pending + resolved tickets
 CREATE POLICY tickets_accounts_select ON tickets
   FOR SELECT USING (

@@ -26,6 +26,7 @@ CREATE TYPE ticket_status AS ENUM (
 CREATE TYPE user_role AS ENUM (
   'citizen',               -- Unlimited, OTP login, no credentials needed
   'je',                    -- Junior Engineer — primary mobile app user (30-40)
+  'mukadam',               -- Site Supervisor — departmental repair lead
   'ae',                    -- Assistant Engineer — estimate verifier (8)
   'ee',                    -- Executive Engineer — multi-zone technical sanction
   'assistant_commissioner', -- Zone Officer — budget holder (8)

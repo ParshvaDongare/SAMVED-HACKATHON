@@ -298,13 +298,13 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- ── CONTRACTOR allowlist: work execution ──
-  IF v_caller_role = 'contractor' THEN
+  -- ── CONTRACTOR & MUKADAM allowlist: work execution ──
+  IF v_caller_role IN ('contractor', 'mukadam') THEN
     v_old_rest.photo_after := NULL; v_new_rest.photo_after := NULL;
     v_old_rest.status := NULL;      v_new_rest.status := NULL; -- Needed to push to audit_pending
     
     IF v_old_rest IS DISTINCT FROM v_new_rest THEN
-      RAISE EXCEPTION 'Contractors can only update photo_after and status (to audit_pending)';
+      RAISE EXCEPTION 'Field executors (Contractor/Mukadam) can only update photo_after and status (to audit_pending)';
     END IF;
     RETURN NEW;
   END IF;
@@ -323,9 +323,10 @@ BEGIN
          OLD.rate_per_unit IS DISTINCT FROM NEW.rate_per_unit OR
          OLD.estimated_cost IS DISTINCT FROM NEW.estimated_cost OR
          OLD.rate_card_id IS DISTINCT FROM NEW.rate_card_id OR
-         OLD.assigned_contractor IS DISTINCT FROM NEW.assigned_contractor
+         OLD.assigned_contractor IS DISTINCT FROM NEW.assigned_contractor OR
+         OLD.assigned_mukadam IS DISTINCT FROM NEW.assigned_mukadam
        ) THEN
-      RAISE EXCEPTION 'Economic details and contractor assignment are locked after the ticket leaves the verification phase';
+      RAISE EXCEPTION 'Economic details and assignments are locked after the ticket leaves the verification phase';
     END IF;
 
     -- If we are in 'open' or 'verified', allow editing them
@@ -334,11 +335,12 @@ BEGIN
     v_old_rest.rate_per_unit := NULL;       v_new_rest.rate_per_unit := NULL;
     v_old_rest.estimated_cost := NULL;      v_new_rest.estimated_cost := NULL;
     v_old_rest.assigned_contractor := NULL; v_new_rest.assigned_contractor := NULL;
+    v_old_rest.assigned_mukadam := NULL;    v_new_rest.assigned_mukadam := NULL;
     v_old_rest.rate_card_id := NULL;        v_new_rest.rate_card_id := NULL;
     -- Note: SSIM, billing, and resolution fields remain untouched
     
     IF v_old_rest IS DISTINCT FROM v_new_rest THEN
-      RAISE EXCEPTION 'JE can only update workflow state, verify dimensions/cost, and assign contractors';
+      RAISE EXCEPTION 'JE can only update workflow state, verify dimensions/cost, and assign contractors/mukadams';
     END IF;
     RETURN NEW;
   END IF;
@@ -409,8 +411,8 @@ BEGIN
         IF NEW.status NOT IN ('assigned', 'escalated') THEN
           RAISE EXCEPTION 'From verified, ticket can only move to assigned or escalated';
         END IF;
-        IF NEW.status = 'assigned' AND NEW.assigned_contractor IS NULL THEN
-          RAISE EXCEPTION 'Ticket must have an assigned contractor to be marked assigned';
+        IF NEW.status = 'assigned' AND (NEW.assigned_contractor IS NULL) = (NEW.assigned_mukadam IS NULL) THEN
+          RAISE EXCEPTION 'Ticket must have exactly one executor (contractor OR mukadam) to be marked assigned';
         END IF;
         IF NEW.status = 'escalated'
            AND v_caller_role NOT IN ('ae', 'ee', 'assistant_commissioner') THEN
@@ -470,12 +472,12 @@ BEGIN
            AND (NEW.dimensions IS NULL OR NEW.rate_per_unit IS NULL) THEN
           RAISE EXCEPTION 'Escalated ticket needs verified dimensions and rate before re-entering workflow';
         END IF;
-        IF NEW.status = 'assigned' AND NEW.assigned_contractor IS NULL THEN
-          RAISE EXCEPTION 'Escalated ticket needs an assigned contractor before moving to assigned';
+        IF NEW.status = 'assigned' AND (NEW.assigned_contractor IS NULL) = (NEW.assigned_mukadam IS NULL) THEN
+          RAISE EXCEPTION 'Escalated ticket needs exactly one executor before moving to assigned';
         END IF;
         IF NEW.status IN ('in_progress', 'audit_pending', 'resolved')
-           AND NEW.assigned_contractor IS NULL THEN
-          RAISE EXCEPTION 'Escalated ticket needs an assigned contractor before resuming execution';
+           AND (NEW.assigned_contractor IS NULL) = (NEW.assigned_mukadam IS NULL) THEN
+          RAISE EXCEPTION 'Escalated ticket needs exactly one executor before resuming execution';
         END IF;
         IF NEW.status IN ('audit_pending', 'resolved') AND NEW.photo_after IS NULL THEN
           RAISE EXCEPTION 'Escalated ticket needs an after-photo before audit or resolution';
