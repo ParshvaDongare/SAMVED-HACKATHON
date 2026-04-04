@@ -14,47 +14,68 @@ export default async function DEDashboardPage() {
 
   if (!profile?.zone_id) return null;
 
-  const { data: tickets } = await supabase
-    .from('tickets')
-    .select('id, ticket_ref, status, assigned_je, sla_breach, created_at, updated_at, road_name, address_text, severity_tier')
-    .eq('zone_id', profile.zone_id)
-    .order('created_at', { ascending: false });
-  const { data: jes } = await supabase
-    .from('profiles')
-    .select('id, full_name, opi_score, opi_zone')
-    .eq('role', 'je')
-    .eq('zone_id', profile.zone_id);
-  const { data: chronicLocations } = await supabase
-    .from('chronic_locations')
-    .select('id, address_text, complaint_count')
-    .eq('zone_id', profile.zone_id)
-    .eq('is_flagged', true);
+  const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const fiveDaysAgo = new Date(Date.now() - 120 * 60 * 60 * 1000).toISOString();
+  const [
+    { data: tickets },
+    { data: jes },
+    { data: chronicLocations },
+    { data: rule2Breaches },
+    slowWorkOrdersResult,
+  ] = await Promise.all([
+    supabase
+      .from('tickets')
+      .select('id, ticket_ref, status, assigned_je, sla_breach, created_at, updated_at, road_name, address_text, severity_tier')
+      .eq('zone_id', profile.zone_id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('id, full_name, opi_score, opi_zone')
+      .eq('role', 'je')
+      .eq('zone_id', profile.zone_id),
+    supabase
+      .from('chronic_locations')
+      .select('id, address_text, complaint_count')
+      .eq('zone_id', profile.zone_id)
+      .eq('is_flagged', true),
+    supabase
+      .from('tickets')
+      .select('id, ticket_ref, status, created_at, road_name, address_text, severity_tier')
+      .eq('zone_id', profile.zone_id)
+      .eq('status', 'open')
+      .lt('created_at', fortyEightHoursAgo)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('zone_id', profile.zone_id)
+      .eq('status', 'assigned')
+      .lt('updated_at', fiveDaysAgo),
+  ]);
 
   const zoneTickets = tickets || [];
   const zoneJEs = jes || [];
   const hotspots = chronicLocations || [];
-  const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  const fiveDaysAgo = new Date(Date.now() - 120 * 60 * 60 * 1000).toISOString();
-  const rule2Breaches = zoneTickets.filter((ticket) => ticket.status === 'open' && ticket.created_at < fortyEightHoursAgo);
-  const slowWorkOrders = zoneTickets.filter((ticket) => ticket.status === 'assigned' && ticket.updated_at < fiveDaysAgo);
+  const rule2Overdue = rule2Breaches || [];
+  const slowWorkOrdersCount = slowWorkOrdersResult.count ?? 0;
 
   return (
     <div className="space-y-6">
-      {rule2Breaches.length > 0 && (
+      {rule2Overdue.length > 0 && (
         <AlertBanner
           variant="error"
           icon="timer_off"
           title="Rule 2 - Overdue Verification (48h)"
-          description={`${rule2Breaches.length} ticket(s) remain in Received beyond 48 hours without JE action.`}
-          count={rule2Breaches.length}
+          description={`${rule2Overdue.length} ticket(s) remain in Received beyond 48 hours without JE action.`}
+          count={rule2Overdue.length}
         />
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Overdue (48h)" value={rule2Breaches.length} accentColor="bg-error" icon="timer_off" />
+        <KpiCard label="Overdue (48h)" value={rule2Overdue.length} accentColor="bg-error" icon="timer_off" />
         <KpiCard label="Escalated" value={zoneTickets.filter((ticket) => ticket.status === 'escalated').length} accentColor="bg-amber-500" icon="priority_high" />
         <KpiCard label="Chronic Hotspots" value={hotspots.length} accentColor="bg-purple-500" icon="warning" />
-        <KpiCard label="Slow Work Orders" value={slowWorkOrders.length} accentColor="bg-primary" icon="pending_actions" />
+        <KpiCard label="Slow Work Orders" value={slowWorkOrdersCount} accentColor="bg-primary" icon="pending_actions" />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -215,7 +236,7 @@ export default async function DEDashboardPage() {
         </div>
       </div>
 
-      {rule2Breaches.length > 0 && (
+      {rule2Overdue.length > 0 && (
         <div>
           <h2 className="text-lg font-headline font-extrabold text-primary flex items-center gap-2 mb-4">
             <span className="material-symbols-outlined text-error" style={{ fontSize: 20 }}>schedule</span>
@@ -233,7 +254,7 @@ export default async function DEDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {rule2Breaches.slice(0, 10).map((ticket) => (
+                {rule2Overdue.slice(0, 10).map((ticket) => (
                   <tr key={ticket.id}>
                     <td className="font-mono font-bold text-xs text-primary">{ticket.ticket_ref}</td>
                     <td className="text-xs text-slate-700">{ticket.road_name || ticket.address_text || '-'}</td>

@@ -21,7 +21,14 @@ export default async function AEDashboardPage() {
     .eq('role', 'je')
     .eq('zone_id', profile.zone_id);
 
-  const [{ data: metricsTickets }, { data: queueTickets }, { data: rules }] = await Promise.all([
+  const { data: rules } = await supabase
+    .from('escalation_rules')
+    .select('rule_number, trigger_hours')
+    .eq('rule_number', 1);
+  const rule1Hours = rules?.[0]?.trigger_hours ?? 4;
+  const rule1CutoffIso = new Date(Date.now() - rule1Hours * 60 * 60 * 1000).toISOString();
+
+  const [{ data: metricsTickets }, { data: queueTickets }, rule1BreachResult] = await Promise.all([
     supabase
       .from('tickets')
       .select('id, ticket_ref, road_name, address_text, status, assigned_je, zone_id, created_at, updated_at, sla_breach')
@@ -33,9 +40,11 @@ export default async function AEDashboardPage() {
       .order('updated_at', { ascending: false })
       .limit(20),
     supabase
-      .from('escalation_rules')
-      .select('rule_number, trigger_hours')
-      .eq('rule_number', 1),
+      .from('tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('zone_id', profile.zone_id)
+      .eq('status', 'open')
+      .lt('created_at', rule1CutoffIso),
   ]);
 
   return (
@@ -44,7 +53,8 @@ export default async function AEDashboardPage() {
       initialMetricsTickets={(metricsTickets || []) as Ticket[]}
       initialQueueTickets={(queueTickets || []) as Ticket[]}
       zoneId={profile.zone_id}
-      rule1Hours={rules?.[0]?.trigger_hours ?? 4}
+      rule1Hours={rule1Hours}
+      initialRule1BreachCount={rule1BreachResult.count ?? 0}
     />
   );
 }

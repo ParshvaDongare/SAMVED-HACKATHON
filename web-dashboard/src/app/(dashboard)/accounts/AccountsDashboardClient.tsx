@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BillStatusPill, EmptyState, KpiCard } from '@/components/shared/DataDisplay';
 import { SsimIndicator } from '@/components/shared/SsimIndicator';
-import { isContractorExecutedTicket } from '@/lib/billing-queries';
 import { createClient } from '@/lib/supabase/client';
 import type { BillLineItem, ContractorBill } from '@/lib/types/database';
 import { cn, formatINR, truncate } from '@/lib/utils';
@@ -127,24 +126,19 @@ export function AccountsDashboardClient({ initialDashboard }: AccountsDashboardC
           photo_after,
           verification_hash,
           created_at,
-          tickets ( ticket_ref, assigned_contractor, assigned_mukadam )
+          tickets!inner ( ticket_ref, assigned_contractor, assigned_mukadam )
         `)
-        .eq('bill_id', billId!);
+        .eq('bill_id', billId!)
+        .not('tickets.assigned_contractor', 'is', null)
+        .is('tickets.assigned_mukadam', null);
 
       if (error) throw new Error(error.message);
       const rows = (data || []) as unknown as LineWithTicket[];
-      return rows
-        .filter((row) => {
-          const ticket = Array.isArray(row.tickets) ? row.tickets[0] : row.tickets;
-          return isContractorExecutedTicket(
-            ticket as { assigned_contractor: string | null; assigned_mukadam: string | null; ticket_ref: string } | null
-          );
-        })
-        .map((row) => {
-          const { tickets: _unused, ...line } = row;
-          void _unused;
-          return line as BillLineItem;
-        });
+      return rows.map((row) => {
+        const { tickets: _unused, ...line } = row;
+        void _unused;
+        return line as BillLineItem;
+      });
     },
   });
 

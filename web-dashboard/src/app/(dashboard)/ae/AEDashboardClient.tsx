@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { KpiCard, AlertBanner, StatusPill, EmptyState } from '@/components/shared/DataDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { timeAgo } from '@/lib/utils';
@@ -12,6 +13,7 @@ interface AEDashboardClientProps {
   initialQueueTickets: Ticket[];
   zoneId: number;
   rule1Hours: number;
+  initialRule1BreachCount: number;
 }
 
 export function AEDashboardClient({
@@ -20,9 +22,11 @@ export function AEDashboardClient({
   initialQueueTickets,
   zoneId,
   rule1Hours,
+  initialRule1BreachCount,
 }: AEDashboardClientProps) {
   const [metricsTickets, setMetricsTickets] = useState<Ticket[]>(initialMetricsTickets);
   const [queueTickets, setQueueTickets] = useState<Ticket[]>(initialQueueTickets);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setMetricsTickets(initialMetricsTickets);
@@ -57,6 +61,7 @@ export function AEDashboardClient({
                   .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
                   .slice(0, 20)
               );
+              void queryClient.invalidateQueries({ queryKey: ['ae', 'rule1-breaches', zoneId] });
             }
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as Ticket;
@@ -80,10 +85,12 @@ export function AEDashboardClient({
                 .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
                 .slice(0, 20);
             });
+            void queryClient.invalidateQueries({ queryKey: ['ae', 'rule1-breaches', zoneId] });
           } else if (payload.eventType === 'DELETE') {
             const deletedId = (payload.old as { id: string }).id;
             setMetricsTickets((prev) => prev.filter((t) => t.id !== deletedId));
             setQueueTickets((prev) => prev.filter((t) => t.id !== deletedId));
+            void queryClient.invalidateQueries({ queryKey: ['ae', 'rule1-breaches', zoneId] });
           }
         }
       )
@@ -92,12 +99,26 @@ export function AEDashboardClient({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [zoneId]);
+  }, [queryClient, zoneId]);
 
-  const rule1Breaches = useMemo(() => {
-    const threshold = new Date(Date.now() - rule1Hours * 60 * 60 * 1000).toISOString();
-    return metricsTickets.filter((t) => t.status === 'open' && t.created_at < threshold);
-  }, [metricsTickets, rule1Hours]);
+  const { data: rule1BreachCount = initialRule1BreachCount } = useQuery({
+    queryKey: ['ae', 'rule1-breaches', zoneId],
+    queryFn: async () => {
+      const supabase = createClient();
+      const threshold = new Date(Date.now() - rule1Hours * 60 * 60 * 1000).toISOString();
+      const { count, error } = await supabase
+        .from('tickets')
+        .select('id', { count: 'exact', head: true })
+        .eq('zone_id', zoneId)
+        .eq('status', 'open')
+        .lt('created_at', threshold);
+
+      if (error) throw error;
+      return count ?? 0;
+    },
+    initialData: initialRule1BreachCount,
+    refetchInterval: 30000,
+  });
 
   const escalatedCount = useMemo(
     () => metricsTickets.filter((t) => t.status === 'escalated').length,
@@ -122,13 +143,13 @@ export function AEDashboardClient({
 
   return (
     <div className="space-y-6">
-      {rule1Breaches.length > 0 && (
+      {rule1BreachCount > 0 && (
         <AlertBanner
           variant="error"
           icon="timer_off"
           title="Rule 1 SLA Breach"
-          description={`${rule1Breaches.length} ticket(s) are still in 'Received' status beyond the Rule 1 acknowledgement window without JE action.`}
-          count={rule1Breaches.length}
+          description={`${rule1BreachCount} ticket(s) are still in 'Received' status beyond the Rule 1 acknowledgement window without JE action.`}
+          count={rule1BreachCount}
         />
       )}
 

@@ -13,6 +13,11 @@ import {
   Cell,
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import {
+  fetchEETechnicalReviewQueue,
+  type TechnicalReviewTicket,
+  type WarrantyWatchTicket,
+} from '@/lib/dashboard/eeTechnicalReview';
 import { formatINR } from '@/lib/utils';
 import type { Ticket, Zone } from '@/lib/types/database';
 
@@ -24,24 +29,12 @@ interface ContractorMetrics {
   quality_index: number | null;
 }
 
-interface TechnicalReviewTicket {
-  id: string;
-  ticket_ref: string;
-  road_name: string | null;
-  zone_id: number | null;
-  approval_tier: 'moderate' | 'major';
-  estimated_cost: number | null;
-  status: Ticket['status'];
-  job_order_ref: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 interface EEDashboardClientProps {
   zones: Zone[];
   initialTickets: Ticket[];
   contractors: ContractorMetrics[];
   initialQueue: TechnicalReviewTicket[];
+  initialWarrantyWatch: WarrantyWatchTicket[];
 }
 
 export function EEDashboardClient({
@@ -49,6 +42,7 @@ export function EEDashboardClient({
   initialTickets,
   contractors,
   initialQueue,
+  initialWarrantyWatch,
 }: EEDashboardClientProps) {
   const [mounted, setMounted] = useState(false);
   const queryClient = useQueryClient();
@@ -72,40 +66,12 @@ export function EEDashboardClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryClient]);
 
-  const technicalQueueFields =
-    'id, ticket_ref, road_name, zone_id, approval_tier, estimated_cost, status, job_order_ref, created_at, updated_at';
-
   const { data: queue, isLoading: queueLoading } = useQuery({
     queryKey: ['ee', 'technical-review-queue'],
-    queryFn: async () => {
-      const [verifiedResult, escalatedResult] = await Promise.all([
-        supabase
-          .from('tickets')
-          .select(technicalQueueFields)
-          .in('approval_tier', ['moderate', 'major'])
-          .eq('status', 'verified')
-          .is('job_order_ref', null)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('tickets')
-          .select(technicalQueueFields)
-          .in('approval_tier', ['moderate', 'major'])
-          .eq('status', 'escalated')
-          .order('created_at', { ascending: false }),
-      ]);
-
-      if (verifiedResult.error) throw verifiedResult.error;
-      if (escalatedResult.error) throw escalatedResult.error;
-
-      const merged = new Map<string, TechnicalReviewTicket>();
-      for (const row of [...(verifiedResult.data || []), ...(escalatedResult.data || [])]) {
-        merged.set(row.id, row as TechnicalReviewTicket);
-      }
-
-      return Array.from(merged.values()).sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-    },
+    queryFn: () =>
+      fetchEETechnicalReviewQueue(
+        supabase as unknown as Parameters<typeof fetchEETechnicalReviewQueue>[0]
+      ),
     initialData: initialQueue,
     refetchInterval: 30000,
   });
@@ -132,10 +98,15 @@ export function EEDashboardClient({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="City-wide Open" value={totalOpen} accentColor="bg-accent" icon="inbox" />
         <KpiCard label="Escalated" value={totalEscalated} accentColor="bg-red-500" icon="priority_high" />
-        <KpiCard label="Budget Utilized" value={`${Math.round((totalConsumed / totalBudget) * 100)}%`} accentColor="bg-blue-500" icon="account_balance" />
+        <KpiCard
+          label="Budget Utilized"
+          value={`${Math.round((totalConsumed / totalBudget) * 100)}%`}
+          accentColor="bg-blue-500"
+          icon="account_balance"
+        />
         <KpiCard label="Technical Review Queue" value={queue?.length || 0} accentColor="bg-amber-500" icon="engineering" />
       </div>
 
@@ -145,7 +116,9 @@ export function EEDashboardClient({
             <span className="material-symbols-outlined text-amber-500" style={{ fontSize: 18 }}>engineering</span>
             Technical Review Queue
           </h2>
-          <span className="text-[10px] text-slate-500">Moderate / major verified tickets without a job order, plus escalated review items</span>
+          <span className="text-[10px] text-slate-500">
+            Rule 3 overdue verified tickets without a job order, plus escalated review items
+          </span>
         </div>
 
         {queueLoading ? (
@@ -163,14 +136,18 @@ export function EEDashboardClient({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="text-sm font-bold text-slate-800">{ticket.ticket_ref}</span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                      ticket.approval_tier === 'major' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
+                    <span
+                      className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                        ticket.approval_tier === 'major' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
                       {ticket.approval_tier}
                     </span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                      ticket.status === 'escalated' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
+                    <span
+                      className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                        ticket.status === 'escalated' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                      }`}
+                    >
                       {ticket.status}
                     </span>
                   </div>
@@ -178,7 +155,8 @@ export function EEDashboardClient({
                     {ticket.road_name || 'Unknown location'} · Zone {ticket.zone_id ?? '—'}
                   </p>
                   <p className="text-[10px] text-slate-400">
-                    Estimated cost: {ticket.estimated_cost !== null ? formatINR(ticket.estimated_cost) : '—'} · Job order: {ticket.job_order_ref || 'Not generated'}
+                    Estimated cost: {ticket.estimated_cost !== null ? formatINR(ticket.estimated_cost) : '—'} · Rule 3 overdue review · Job order:{' '}
+                    {ticket.job_order_ref || 'Not generated'}
                   </p>
                 </div>
               </div>
@@ -187,7 +165,45 @@ export function EEDashboardClient({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="text-sm font-headline font-extrabold text-slate-800 flex items-center gap-2">
+            <span className="material-symbols-outlined text-red-500" style={{ fontSize: 18 }}>shield</span>
+            Defect Liability Watch
+          </h2>
+          <span className="text-[10px] text-slate-500">Tickets with warranty expiry in the next 30 days</span>
+        </div>
+
+        {initialWarrantyWatch.length === 0 ? (
+          <div className="p-8 text-center text-slate-500 text-sm">
+            No warranty expiry alerts in the next 30 days
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {initialWarrantyWatch.map((ticket) => (
+              <div key={ticket.id} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-sm font-bold text-slate-800">{ticket.ticket_ref}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-red-100 text-red-700">
+                      Warranty Watch
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">
+                    {ticket.road_name || 'Unknown location'} · Zone {ticket.zone_id ?? '—'}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    Contractor: {ticket.assigned_contractor ? `${ticket.assigned_contractor.slice(0, 8)}...` : 'Unassigned'} · Expiry:{' '}
+                    {ticket.warranty_expiry ? new Date(ticket.warranty_expiry).toLocaleDateString('en-IN') : '—'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <h2 className="text-sm font-headline font-extrabold text-slate-800 mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-accent" style={{ fontSize: 18 }}>bar_chart</span>
@@ -245,7 +261,12 @@ export function EEDashboardClient({
                   const open = zoneTickets.filter((t) => !['resolved', 'rejected'].includes(t.status)).length;
                   const breaches = zoneTickets.filter((t) => t.sla_breach).length;
                   const breachPct = zoneTickets.length > 0 ? Math.round((breaches / zoneTickets.length) * 100) : 0;
-                  const statusColor = breachPct > 30 ? 'bg-red-100 text-red-700' : breachPct > 15 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700';
+                  const statusColor =
+                    breachPct > 30
+                      ? 'bg-red-100 text-red-700'
+                      : breachPct > 15
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-green-100 text-green-700';
                   const statusLabel = breachPct > 30 ? 'At Risk' : breachPct > 15 ? 'Watch' : 'Normal';
 
                   return (

@@ -4,6 +4,10 @@ import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { formatINR, cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import {
+  type CommissionerKpis,
+  fetchCommissionerKpis,
+} from '@/lib/dashboard/commissionerKpis';
 import { BudgetGauge, MiniBudgetGauge } from '@/components/dashboard/BudgetGauge';
 import { STATUS_DISPLAY } from '@/lib/constants/status';
 import type { Ticket, Zone, TicketStatus } from '@/lib/types/database';
@@ -33,6 +37,7 @@ interface CommissionerClientProps {
   zones: Zone[];
   metrics: ContractorMetric[];
   recentEvents: TicketEvent[];
+  initialKpis: CommissionerKpis;
   totalBudget: number;
   totalConsumed: number;
 }
@@ -59,15 +64,31 @@ export function CommissionerDashboardClient({
   zones,
   metrics,
   recentEvents: initialEvents,
+  initialKpis,
   totalBudget,
   totalConsumed,
 }: CommissionerClientProps) {
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
   const [recentEvents, setRecentEvents] = useState<TicketEvent[]>(initialEvents);
+  const [kpis, setKpis] = useState<CommissionerKpis>(initialKpis);
   const [pulse, setPulse] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
+    let disposed = false;
+
+    const refreshKpis = async () => {
+      try {
+        const nextKpis = await fetchCommissionerKpis(
+          supabase as unknown as Parameters<typeof fetchCommissionerKpis>[0]
+        );
+        if (!disposed) {
+          setKpis(nextKpis);
+        }
+      } catch {
+        // Keep the last known values if a refresh fails.
+      }
+    };
 
     const ticketChannel = supabase
       .channel('commissioner-tickets')
@@ -80,7 +101,13 @@ export function CommissionerDashboardClient({
           setTickets((prev) =>
             prev.map((ticket) => (ticket.id === payload.new.id ? (payload.new as Ticket) : ticket))
           );
+        } else if (payload.eventType === 'DELETE') {
+          const deletedId = (payload.old as { id?: string }).id;
+          if (deletedId) {
+            setTickets((prev) => prev.filter((ticket) => ticket.id !== deletedId));
+          }
         }
+        void refreshKpis();
       })
       .subscribe();
 
@@ -96,20 +123,13 @@ export function CommissionerDashboardClient({
       .subscribe();
 
     return () => {
+      disposed = true;
       supabase.removeChannel(ticketChannel);
       supabase.removeChannel(eventsChannel);
     };
   }, []);
 
-  const totalOpen = tickets.filter((ticket) => !['resolved', 'rejected'].includes(ticket.status)).length;
-  const criticalOpen = tickets.filter(
-    (ticket) =>
-      ticket.severity_tier === 'CRITICAL' && !['resolved', 'rejected'].includes(ticket.status)
-  ).length;
-  const resolvedCount = tickets.filter((ticket) => ticket.status === 'resolved').length;
-  const slaBreach = tickets.filter((ticket) => ticket.sla_breach).length;
   const budgetPct = totalBudget > 0 ? Math.round((totalConsumed / totalBudget) * 100) : 0;
-  const chronicCount = tickets.filter((ticket) => ticket.is_chronic_location).length;
 
   const heatmapWeightFn = useMemo(
     () => (ticket: Ticket) => {
@@ -162,15 +182,15 @@ export function CommissionerDashboardClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {[
-          { label: 'Total Open', value: totalOpen, color: 'text-white', accent: 'bg-accent' },
-          { label: 'Critical', value: criticalOpen, color: 'text-red-400', accent: 'bg-red-500' },
-          { label: 'Chronic', value: chronicCount, color: 'text-purple-400', accent: 'bg-purple-500' },
-          { label: 'Resolved', value: resolvedCount, color: 'text-green-400', accent: 'bg-green-500' },
-          { label: 'SLA Breached', value: slaBreach, color: 'text-amber-400', accent: 'bg-amber-500' },
-        ].map((kpi) => (
-          <div key={kpi.label} className="kpi-card bg-warroom-surface border-warroom-border relative overflow-hidden">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {[
+            { label: 'Total Open', value: kpis.totalOpen, color: 'text-white', accent: 'bg-accent' },
+            { label: 'Critical', value: kpis.criticalOpen, color: 'text-red-400', accent: 'bg-red-500' },
+            { label: 'Chronic', value: kpis.chronicCount, color: 'text-purple-400', accent: 'bg-purple-500' },
+            { label: 'Resolved Today', value: kpis.resolvedToday, color: 'text-green-400', accent: 'bg-green-500' },
+            { label: 'SLA Breached', value: kpis.slaBreach, color: 'text-amber-400', accent: 'bg-amber-500' },
+          ].map((kpi) => (
+            <div key={kpi.label} className="kpi-card bg-warroom-surface border-warroom-border relative overflow-hidden">
             <div className={`absolute left-0 top-0 bottom-0 w-1 ${kpi.accent}`} />
             <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">
               {kpi.label}
@@ -191,7 +211,7 @@ export function CommissionerDashboardClient({
                 City-Wide Heatmap
               </p>
               <span className="text-[9px] text-slate-600">
-                {tickets.filter((ticket) => ticket.latitude).length} tickets | {chronicCount} chronic
+                {tickets.filter((ticket) => ticket.latitude).length} tickets | {kpis.chronicCount} chronic
               </span>
             </div>
           </div>
