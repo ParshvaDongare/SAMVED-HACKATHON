@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/auth/blocked_screen.dart';
 import '../features/auth/login_screen.dart';
+import '../features/auth/official_login_screen.dart';
 import '../features/auth/otp_screen.dart';
 import '../features/auth/splash_screen.dart';
 import '../features/citizen/citizen_home_screen.dart';
@@ -36,12 +37,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final session = Supabase.instance.client.auth.currentSession;
       final path = state.uri.path;
       if (session == null) {
-        if (path == '/login' || path == '/otp' || path == '/splash') {
+        if (path == '/login' ||
+            path == '/official-login' ||
+            path == '/otp' ||
+            path == '/splash') {
           return null;
         }
         return '/login';
       }
-      if (path == '/login') {
+      if (path == '/login' || path == '/official-login') {
         return '/splash';
       }
       return null;
@@ -54,6 +58,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (_, __) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/official-login',
+        builder: (_, __) => const OfficialLoginScreen(),
       ),
       GoRoute(
         path: '/otp',

@@ -27,6 +27,24 @@ class AuthService {
     );
   }
 
+  Future<AuthResponse> signInOfficial({
+    required String identifier,
+    required String password,
+  }) {
+    final raw = identifier.trim();
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    final isEmail = raw.contains('@');
+
+    if (isEmail) {
+      return _client.auth.signInWithPassword(email: raw, password: password);
+    }
+
+    final phone = digits.length == 10
+        ? '+91$digits'
+        : (digits.startsWith('91') ? '+$digits' : '+$digits');
+    return _client.auth.signInWithPassword(phone: phone, password: password);
+  }
+
   Future<void> signOut() => _client.auth.signOut();
 
   Future<Profile?> fetchProfile() async {

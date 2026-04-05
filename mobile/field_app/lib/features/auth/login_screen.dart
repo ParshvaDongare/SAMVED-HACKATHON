@@ -219,6 +219,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               loading: _loading,
                             ),
                           ),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: _loading
+                                ? null
+                                : () => context.push('/official-login'),
+                            icon: const Icon(Icons.badge_outlined),
+                            label: const Text('Official Login (JE/Mukadam/Contractor)'),
+                          ),
                           const SizedBox(height: 22),
                           Text(
                             'You will receive a 6-digit OTP via SMS',
