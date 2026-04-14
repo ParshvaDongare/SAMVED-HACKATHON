@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/status_labels.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/ticket.dart';
 import '../../providers/ticket_providers.dart';
 
@@ -18,9 +19,10 @@ class _MyComplaintsScreenState extends ConsumerState<MyComplaintsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final async = ref.watch(citizenTicketsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('My Complaints')),
+      appBar: AppBar(title: Text(l10n.myComplaintsTitle)),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
@@ -32,22 +34,22 @@ class _MyComplaintsScreenState extends ConsumerState<MyComplaintsScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 SegmentedButton<int>(
-                  segments: const [
-                    ButtonSegment(value: 0, label: Text('All')),
-                    ButtonSegment(value: 1, label: Text('Pending')),
-                    ButtonSegment(value: 2, label: Text('Active')),
-                    ButtonSegment(value: 3, label: Text('Resolved')),
+                  segments: [
+                    ButtonSegment(value: 0, label: Text(l10n.tabAll)),
+                    ButtonSegment(value: 1, label: Text(l10n.tabPending)),
+                    ButtonSegment(value: 2, label: Text(l10n.tabActive)),
+                    ButtonSegment(value: 3, label: Text(l10n.tabResolved)),
                   ],
                   selected: {_tab},
                   onSelectionChanged: (v) => setState(() => _tab = v.first),
                 ),
                 const SizedBox(height: 14),
                 if (filtered.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 36),
-                    child: Center(child: Text('No complaints in this filter')),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 36),
+                    child: Center(child: Text(l10n.noComplaintsInFilter)),
                   ),
-                ...filtered.map((t) => _ticketCard(context, t)),
+                ...filtered.map((t) => _ticketCard(context, l10n, t)),
               ],
             ),
           );
@@ -71,7 +73,7 @@ class _MyComplaintsScreenState extends ConsumerState<MyComplaintsScreen> {
     }
   }
 
-  Widget _ticketCard(BuildContext context, Ticket t) {
+  Widget _ticketCard(BuildContext context, AppLocalizations l10n, Ticket t) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -90,7 +92,7 @@ class _MyComplaintsScreenState extends ConsumerState<MyComplaintsScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        t.ticketRef.isEmpty ? 'Application' : t.ticketRef,
+                        t.ticketRef.isEmpty ? l10n.ticketRefPlaceholder : t.ticketRef,
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
@@ -107,9 +109,13 @@ class _MyComplaintsScreenState extends ConsumerState<MyComplaintsScreen> {
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(
+                    child: TextButton.icon(
                       onPressed: () => context.push('/citizen/tickets/${t.id}'),
-                      child: const Text('View Repair Proof'),
+                      icon: Icon(
+                        t.photoAfter != null ? Icons.photo_library_outlined : Icons.visibility_outlined,
+                        size: 18,
+                      ),
+                      label: Text(l10n.viewRepairProof),
                     ),
                   ),
                 ],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/widgets/gradient_primary_button.dart';
 import '../../providers/providers.dart';
 import '../../providers/ticket_providers.dart';
-import 'confirmation_screen.dart';
 
 class AiResultArgs {
   const AiResultArgs({
@@ -26,6 +26,16 @@ class AiResultArgs {
   final String? addressText;
   final String? nearestLandmark;
   final String? damageType;
+}
+
+/// Keeps the report -> AI review payload alive across GoRouter refreshes on web.
+class AiResultDraftCache {
+  AiResultDraftCache._();
+  static AiResultArgs? _draft;
+
+  static void set(AiResultArgs args) => _draft = args;
+  static AiResultArgs? get() => _draft;
+  static void clear() => _draft = null;
 }
 
 class AiResultScreen extends ConsumerStatefulWidget {
@@ -49,6 +59,7 @@ class _AiResultScreenState extends ConsumerState<AiResultScreen> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     setState(() {
       _submitting = true;
       _error = null;
@@ -82,42 +93,18 @@ class _AiResultScreenState extends ConsumerState<AiResultScreen> {
             damageType: _selectedDamage,
           );
 
-      Map<String, dynamic>? severity;
-      var ticket = await ticketService.fetchTicket(ticketId);
-      try {
-        final pipeline = await ticketService.runCitizenAiPipeline(ticketId);
-        severity = pipeline.severity;
-        ticket = pipeline.ticket ?? ticket;
-        final detectEnvelope = pipeline.detect;
-        final detectAi = detectEnvelope?['ai'];
-        if (detectAi is Map) {
-          _selectedDamage =
-              (detectAi['damage_type'] as String?) ?? _selectedDamage;
-        }
-      } catch (_) {
-        ticket = await ticketService.fetchTicket(ticketId);
-      }
-
-      final severityEnvelope = severity;
-      final severityAi = severityEnvelope?['ai'];
-      final slaHours =
-          severityAi is Map ? severityAi['sla_hours'] as int? : null;
-
       ref.invalidate(citizenTicketsProvider);
+      AiResultDraftCache.clear();
+      ref.read(citizenPostSubmitBannerProvider.notifier).state =
+          'Complaint submitted. AI review is running in the background — open Track to follow progress.';
+
       if (!mounted) return;
-      context.go(
-        '/citizen/confirmation',
-        extra: ConfirmationArgs(
-          ticketId: ticketId,
-          ticketRef: ticket?.ticketRef,
-          zoneId: ticket?.zoneId,
-          prabhagId: ticket?.prabhagId,
-          severity: ticket?.severityTier,
-          epdoScore: ticket?.epdoScore,
-          slaHours: slaHours,
-        ),
-      );
+      final container = ProviderScope.containerOf(context);
+      context.go('/citizen/home');
+
+      unawaited(_runCitizenAiPipelineInBackground(container, ticketId));
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -168,12 +155,12 @@ class _AiResultScreenState extends ConsumerState<AiResultScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Secure AI analysis runs after submission',
+                        'Submit your complaint',
                         style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Your photo is uploaded first, then the complaint is created in Supabase, and then the new Edge Functions run detection and severity scoring on that live ticket.',
+                        'Your photo is uploaded and the complaint is saved first. After you submit, you return home right away while AI detection and severity run in the background. Check Track for updates.',
                         style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                       ),
                       const SizedBox(height: 12),
@@ -202,7 +189,7 @@ class _AiResultScreenState extends ConsumerState<AiResultScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'You can still correct the damage type before final submission. AI results will appear on the confirmation and tracker screens after the secure backend analysis finishes.',
+                        'You can still correct the damage type before submitting. Severity and AI details will update on your complaint in Track when processing finishes.',
                         style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                       ),
                     ],
@@ -215,7 +202,7 @@ class _AiResultScreenState extends ConsumerState<AiResultScreen> {
           const SizedBox(height: 14),
           GradientPrimaryButton(
             onPressed: _submitting ? null : _submit,
-            label: 'Submit & Run AI Review',
+            label: 'Submit complaint',
             icon: Icons.check_circle_outline,
             loading: _submitting,
           ),
@@ -239,5 +226,18 @@ class _AiResultScreenState extends ConsumerState<AiResultScreen> {
       ),
       child: Text('$label: $value'),
     );
+  }
+}
+
+Future<void> _runCitizenAiPipelineInBackground(
+  ProviderContainer container,
+  String ticketId,
+) async {
+  try {
+    await container.read(ticketServiceProvider).runCitizenAiPipeline(ticketId);
+  } catch (_) {
+    // Edge functions may be slow or unavailable; ticket still exists — refresh shows latest.
+  } finally {
+    container.invalidate(citizenTicketsProvider);
   }
 }

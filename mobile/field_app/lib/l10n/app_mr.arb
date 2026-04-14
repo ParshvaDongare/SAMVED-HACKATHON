@@ -1,0 +1,105 @@
+{
+  "@@locale": "mr",
+  "navHome": "मुख्यपृष्ठ",
+  "navReport": "तक्रार",
+  "navTrack": "मागोवा",
+  "navProfile": "प्रोफाइल",
+  "profileTitle": "प्रोफाइल",
+  "citizenRole": "नागरिक",
+  "citizenZoneLine": "नागरिक · झोन {zoneId}",
+  "@citizenZoneLine": {
+    "placeholders": {
+      "zoneId": {
+        "type": "String"
+      }
+    }
+  },
+  "languageMarathi": "भाषा: मराठी",
+  "statusUpdates": "स्थिती अद्यतने",
+  "jeDispatchedAlerts": "कनिष्ठ अभियंता रवाना सूचना",
+  "complaintResolvedAlerts": "तक्रार निवारण सूचना",
+  "howToReport": "तक्रार कशी करावी",
+  "contactZoneOffice": "झोन कार्यालयाशी संपर्क",
+  "privacyPolicy": "गोपनीयता धोरण",
+  "signOut": "बाहेर पडा",
+  "preferenceSaved": "सेटिंग जतन केली",
+  "notifPrefsHint": "पुश/एसएमएस सुरू झाल्यावर या पर्यायांनुसार सूचना पाठवल्या जातील.",
+  "close": "बंद",
+  "howToReportTitle": "रस्त्याची तक्रार कशी नोंदवावी",
+  "howToReportStep1": "१. तक्रार उघडा, कॅमेरा व ठिकाणाची परवानगी द्या.",
+  "howToReportStep2": "२. खड्डा किंवा नुकसान स्पष्ट दिसेल असे फोटो काढा.",
+  "howToReportStep3": "३. जीपीएस तपासा; शक्य असल्यास पत्ता किंवा जवळची खूण लिहा.",
+  "howToReportStep4": "४. सबमिट करा — एआय मदत करते; एसएमसी तक्रार आपल्या झोनकडे पाठवते.",
+  "contactZoneTitle": "झोन कार्यालय व एसएमसी",
+  "contactZoneBody": "प्रभागनिहाय संपर्कासाठी सोलापूर महानगरपालिकेची अधिकृत वेबसाइट पहा किंवा तिथे दिलेला हेल्पलाइन वापरा. या अॅपमधून तक्रार डिजिटल प्रणालीत नोंदते, जेणेकरून अभियंते तपास व काम वाटप करू शकतील.",
+  "openSmcWebsite": "एसएमसी वेबसाइट उघडा",
+  "privacyPolicyTitle": "गोपनीयता",
+  "privacyPolicyBody": "रोड निर्माण तक्रारीसोबत आपण दिलेली माहिती गोळा करते: फोटो, जीपीएस ठिकाण, ऐच्छिक पत्ता आणि खात्याचा फोन. ही माहिती नुकसान तपासणी, कार्यक्षेत्र ठरवणी व नगरपालिका नोंदीसाठी वापरली जाते. प्रवेश नागरिक, अधिकारी, कंत्राटदार या भूमिकेनुसार मर्यादित आहे. रस्त्याशी संबंध नसलेले लोक किंवा खाजगी मालमत्तेचे फोटो अपलोड करू नका.",
+  "greetingHello": "नमस्कार",
+  "greetingNamaste": "नमस्कार",
+  "citizenFallbackName": "नागरिक",
+  "notificationsTooltip": "सूचना",
+  "notificationsSheetTitle": "सूचना",
+  "notificationsSheetBody": "स्थिती बदल 'मागोवा' मध्ये दिसतात. प्रोफाइलमधील सूचना पर्याय चालू ठेवा — पुश/एसएमएस एसएमसी तैनातीनुसार सुरू होईल.",
+  "noReportsYet": "अद्याप कोणतीही तक्रार नाही",
+  "noReportsSubtitle": "जवळच्या रस्त्यावरील समस्या नोंदवण्यास 'तक्रार' वापरा.",
+  "recentGrievances": "अलीकडील तक्रारी",
+  "viewAll": "सर्व पहा",
+  "totalCount": "एकूण {count}",
+  "@totalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quickAction": "त्वरित कृती",
+  "spotPothole": "खड्डा दिसतो आहे का?",
+  "reportUnderMinute": "एक मिनिटात नोंदवा",
+  "reportDamage": "तक्रार नोंदवा",
+  "citizenSummary": "नागरिक सारांश",
+  "openComplaints": "प्रलंबित तक्रारी",
+  "resolved": "निवारित",
+  "reportDamageTitle": "रस्त्याची तक्रार",
+  "citizenReportHeader": "नागरिक तक्रार",
+  "citizenReportSubtitle": "फोटो, जीपीएस जोडा आणि त्वरित सबमिट करा.",
+  "cameraDenied": "कॅमेरा परवानगी नाकारली. सेटिंगमध्ये सुरू करा.",
+  "locationDenied": "ठिकाण परवानगी नाकारली. तक्रारीस जीपीएस आवश्यक आहे.",
+  "choosePhoto": "फोटो निवडा",
+  "takePhoto": "फोटो काढा",
+  "changePhoto": "फोटो बदला",
+  "retakePhoto": "पुन्हा काढा",
+  "getGpsLocation": "जीपीएस मिळवा",
+  "gpsCoordinates": "जीपीएस: {lat}, {lng}",
+  "@gpsCoordinates": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "damageType": "नुकसानाचा प्रकार",
+  "addressArea": "पत्ता / परिसर",
+  "nearestLandmark": "जवळची खूण",
+  "continueToAi": "एआय तपासाकडे पुढे जा",
+  "errorPhotoRequiredWeb": "नुकसानाचा फोटो निवडा (ब्राउझरसाठी गॅलरी).",
+  "errorPhotoRequired": "नुकसानाचा फोटो काढा किंवा निवडा.",
+  "errorGpsRequired": "जीपीएस ठिकाण आवश्यक आहे.",
+  "damagePothole": "खड्डा",
+  "damageCrack": "भेग",
+  "damageSurfaceFailure": "पृष्ठभाग खराबी",
+  "myComplaintsTitle": "माझ्या तक्रारी",
+  "tabAll": "सर्व",
+  "tabPending": "प्रलंबित",
+  "tabActive": "सुरू",
+  "tabResolved": "निवारित",
+  "noComplaintsInFilter": "या फिल्टरमध्ये तक्रार नाही",
+  "profileAccountGreeting": "नागरिक खाते",
+  "profileToolsTitle": "प्रोफाइल साधने",
+  "profileToolsSubtitle": "मराठी, सूचना, तक्रार पद्धत, एसएमसी संपर्क व गोपनीयतेसाठी 'प्रोफाइल' टॅब उघडा.",
+  "ticketRefPlaceholder": "तक्रार",
+  "viewRepairProof": "दुरुस्ती पुरावा पहा"
+}

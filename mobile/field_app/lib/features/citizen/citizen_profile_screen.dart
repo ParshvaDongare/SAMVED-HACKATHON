@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/theme.dart';
+import '../../l10n/app_localizations.dart';
+import '../../providers/app_locale_provider.dart';
 import '../../providers/providers.dart';
+import 'citizen_profile_dialogs.dart';
 
 class CitizenProfileScreen extends ConsumerStatefulWidget {
   const CitizenProfileScreen({super.key});
@@ -41,19 +44,30 @@ class _CitizenProfileScreenState extends ConsumerState<CitizenProfileScreen> {
     await p.setBool(key, value);
   }
 
+  void _snackSaved(AppLocalizations l10n) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${l10n.preferenceSaved}. ${l10n.notifPrefsHint}'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final profile = ref.watch(profileProvider).value;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n.profileTitle),
         foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppDesign.navyGradient),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           Container(
             padding: const EdgeInsets.all(16),
@@ -65,10 +79,15 @@ class _CitizenProfileScreenState extends ConsumerState<CitizenProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(profile?.fullName ?? 'Citizen', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                Text(
+                  profile?.fullName ?? l10n.citizenFallbackName,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                ),
                 const SizedBox(height: 4),
                 Text(profile?.phone ?? '-'),
-                Text('Citizen · Zone ${profile?.zoneId ?? '-'}'),
+                Text(
+                  l10n.citizenZoneLine('${profile?.zoneId ?? '-'}'),
+                ),
               ],
             ),
           ),
@@ -76,61 +95,72 @@ class _CitizenProfileScreenState extends ConsumerState<CitizenProfileScreen> {
           _tileCard(
             context,
             child: SwitchListTile(
-              title: const Text('Language: Marathi'),
+              title: Text(l10n.languageMarathi),
               value: _marathi,
               onChanged: (v) {
                 setState(() => _marathi = v);
+                ref.read(appLocaleProvider.notifier).state =
+                    v ? const Locale('mr') : const Locale('en');
                 _save('citizen_lang_mr', v);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.preferenceSaved),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               },
             ),
           ),
           _tileCard(
             context,
             child: SwitchListTile(
-              title: const Text('Status updates'),
+              title: Text(l10n.statusUpdates),
               value: _notifStatus,
-              onChanged: (v) {
+              onChanged: (v) async {
                 setState(() => _notifStatus = v);
-                _save('citizen_notif_status', v);
+                await _save('citizen_notif_status', v);
+                _snackSaved(l10n);
               },
             ),
           ),
           _tileCard(
             context,
             child: SwitchListTile(
-              title: const Text('JE dispatched alerts'),
+              title: Text(l10n.jeDispatchedAlerts),
               value: _notifDispatch,
-              onChanged: (v) {
+              onChanged: (v) async {
                 setState(() => _notifDispatch = v);
-                _save('citizen_notif_dispatch', v);
+                await _save('citizen_notif_dispatch', v);
+                _snackSaved(l10n);
               },
             ),
           ),
           _tileCard(
             context,
             child: SwitchListTile(
-              title: const Text('Complaint resolved alerts'),
+              title: Text(l10n.complaintResolvedAlerts),
               value: _notifResolved,
-              onChanged: (v) {
+              onChanged: (v) async {
                 setState(() => _notifResolved = v);
-                _save('citizen_notif_resolved', v);
+                await _save('citizen_notif_resolved', v);
+                _snackSaved(l10n);
               },
             ),
           ),
           const SizedBox(height: 16),
           FilledButton.tonal(
-            onPressed: () {},
-            child: const Text('How to report'),
+            onPressed: () => showHowToReportSheet(context, l10n),
+            child: Text(l10n.howToReport),
           ),
           const SizedBox(height: 8),
           FilledButton.tonal(
-            onPressed: () {},
-            child: const Text('Contact Zone Office'),
+            onPressed: () => showContactZoneDialog(context, l10n),
+            child: Text(l10n.contactZoneOffice),
           ),
           const SizedBox(height: 8),
           FilledButton.tonal(
-            onPressed: () {},
-            child: const Text('Privacy Policy'),
+            onPressed: () => showPrivacyDialog(context, l10n),
+            child: Text(l10n.privacyPolicy),
           ),
           const SizedBox(height: 16),
           FilledButton(
@@ -139,7 +169,7 @@ class _CitizenProfileScreenState extends ConsumerState<CitizenProfileScreen> {
               if (!context.mounted) return;
               context.go('/login');
             },
-            child: const Text('Sign Out'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),

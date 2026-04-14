@@ -1,0 +1,105 @@
+{
+  "@@locale": "en",
+  "navHome": "Home",
+  "navReport": "Report",
+  "navTrack": "Track",
+  "navProfile": "Profile",
+  "profileTitle": "Profile",
+  "citizenRole": "Citizen",
+  "citizenZoneLine": "Citizen · Zone {zoneId}",
+  "@citizenZoneLine": {
+    "placeholders": {
+      "zoneId": {
+        "type": "String"
+      }
+    }
+  },
+  "languageMarathi": "Language: Marathi",
+  "statusUpdates": "Status updates",
+  "jeDispatchedAlerts": "JE dispatched alerts",
+  "complaintResolvedAlerts": "Complaint resolved alerts",
+  "howToReport": "How to report",
+  "contactZoneOffice": "Contact zone office",
+  "privacyPolicy": "Privacy policy",
+  "signOut": "Sign out",
+  "preferenceSaved": "Preference saved",
+  "notifPrefsHint": "We will use these when push/SMS alerts are enabled for your account.",
+  "close": "Close",
+  "howToReportTitle": "How to report road damage",
+  "howToReportStep1": "1. Open Report, allow camera and location.",
+  "howToReportStep2": "2. Take a clear photo of the pothole or damage.",
+  "howToReportStep3": "3. Confirm GPS and add address or landmark if you can.",
+  "howToReportStep4": "4. Submit — AI assists classification; SMC routes the complaint to your zone.",
+  "contactZoneTitle": "Zone office & SMC",
+  "contactZoneBody": "For ward-wise contacts, visit the Solapur Municipal Corporation website or call the main civic helpline listed there. This app registers your complaint in the digital workflow so engineers can verify and assign work.",
+  "openSmcWebsite": "Open SMC website",
+  "privacyPolicyTitle": "Privacy",
+  "privacyPolicyBody": "Road Nirman collects the information you submit with a complaint: photos, GPS location, optional address text, and your account phone number. Data is used to verify damage, assign jurisdiction, and process municipal records. Access is restricted by role (citizen, officer, contractor) under municipal security rules. Do not upload photos of people or private property unrelated to the road issue.",
+  "greetingHello": "Hello",
+  "greetingNamaste": "Namaste",
+  "citizenFallbackName": "Citizen",
+  "notificationsTooltip": "Notifications",
+  "notificationsSheetTitle": "Alerts",
+  "notificationsSheetBody": "Status changes appear under Track. Turn on notification types in Profile — delivery via push/SMS will follow your SMC rollout.",
+  "noReportsYet": "No reports yet",
+  "noReportsSubtitle": "Use Report to log road issues near you.",
+  "recentGrievances": "Recent grievances",
+  "viewAll": "View all",
+  "totalCount": "{count} total",
+  "@totalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quickAction": "Quick action",
+  "spotPothole": "Spot a pothole?",
+  "reportUnderMinute": "Report it in under a minute",
+  "reportDamage": "Report damage",
+  "citizenSummary": "Citizen summary",
+  "openComplaints": "Open complaints",
+  "resolved": "Resolved",
+  "reportDamageTitle": "Report damage",
+  "citizenReportHeader": "Citizen report",
+  "citizenReportSubtitle": "Capture damage, attach GPS, and submit instantly.",
+  "cameraDenied": "Camera permission denied. Enable it in Settings to capture evidence.",
+  "locationDenied": "Location permission denied. GPS is mandatory for report routing.",
+  "choosePhoto": "Choose photo",
+  "takePhoto": "Take photo",
+  "changePhoto": "Change photo",
+  "retakePhoto": "Retake photo",
+  "getGpsLocation": "Get GPS location",
+  "gpsCoordinates": "GPS: {lat}, {lng}",
+  "@gpsCoordinates": {
+    "placeholders": {
+      "lat": {
+        "type": "String"
+      },
+      "lng": {
+        "type": "String"
+      }
+    }
+  },
+  "damageType": "Damage type",
+  "addressArea": "Address / area",
+  "nearestLandmark": "Nearest landmark",
+  "continueToAi": "Continue to AI review",
+  "errorPhotoRequiredWeb": "Choose a photo for the damage (browser testing uses gallery).",
+  "errorPhotoRequired": "Take or choose a photo of the damage.",
+  "errorGpsRequired": "GPS location is required.",
+  "damagePothole": "Pothole",
+  "damageCrack": "Crack",
+  "damageSurfaceFailure": "Surface failure",
+  "myComplaintsTitle": "My complaints",
+  "tabAll": "All",
+  "tabPending": "Pending",
+  "tabActive": "Active",
+  "tabResolved": "Resolved",
+  "noComplaintsInFilter": "No complaints in this filter",
+  "profileAccountGreeting": "Citizen account",
+  "profileToolsTitle": "Profile tools",
+  "profileToolsSubtitle": "Open the Profile tab for Marathi, alert preferences, how to report, SMC contact, and privacy.",
+  "ticketRefPlaceholder": "Complaint",
+  "viewRepairProof": "View repair proof"
+}

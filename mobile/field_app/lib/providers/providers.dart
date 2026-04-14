@@ -42,3 +42,6 @@ final profileProvider = FutureProvider<Profile?>((ref) async {
   if (auth.currentSession == null) return null;
   return auth.fetchProfile();
 });
+
+/// One-shot message after submitting a complaint (e.g. show SnackBar on home).
+final citizenPostSubmitBannerProvider = StateProvider<String?>((ref) => null);

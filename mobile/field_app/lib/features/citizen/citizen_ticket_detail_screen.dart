@@ -133,21 +133,112 @@ class CitizenTicketDetailScreen extends ConsumerWidget {
                   child: _StatusStepper(status: ticket.status),
                 ),
                 const SizedBox(height: 16),
-                if (ticket.primaryBeforePhoto != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 10,
-                      child: CachedNetworkImage(
-                        imageUrl: ticket.primaryBeforePhoto!,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => const SizedBox(
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
+                if (ticket.primaryBeforePhoto != null) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Original report',
+                      style: tt.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: cs.onSurfaceVariant,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  _PhotoCard(
+                    imageUrl: ticket.primaryBeforePhoto!,
+                    onOpen: () => _openPhotoLightbox(context, ticket.primaryBeforePhoto!),
+                  ),
+                ],
+                if (ticket.photoAfter != null) ...[
+                  const SizedBox(height: 18),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Icon(Icons.verified_outlined, size: 20, color: cs.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'After repair (fix verification)',
+                            style: tt.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _PhotoCard(
+                    imageUrl: ticket.photoAfter!,
+                    onOpen: () => _openPhotoLightbox(context, ticket.photoAfter!),
+                  ),
+                  if (ticket.ssimScore != null || ticket.ssimPass != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: (ticket.ssimPass == true)
+                            ? cs.primaryContainer.withValues(alpha: 0.5)
+                            : cs.errorContainer.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            ticket.ssimPass == true ? Icons.check_circle : Icons.info_outline,
+                            size: 20,
+                            color: ticket.ssimPass == true ? cs.primary : cs.error,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Repair quality check',
+                                  style: tt.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+                                ),
+                                Text(
+                                  ticket.ssimPass == true
+                                      ? 'Verification passed${ticket.ssimScore != null ? ' · score ${ticket.ssimScore!.toStringAsFixed(2)}' : ''}'
+                                      : 'Under review${ticket.ssimScore != null ? ' · score ${ticket.ssimScore!.toStringAsFixed(2)}' : ''}',
+                                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ] else if (const {'resolved', 'audit_pending'}.contains(ticket.status)) ...[
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.hourglass_empty, size: 22, color: cs.onSurfaceVariant),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            ticket.status == 'resolved'
+                                ? 'Fix verification photo is not on file for this complaint. Contact the zone office if you expected an after photo.'
+                                : 'After-repair photo will appear here once the contractor uploads proof.',
+                            style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 if (ticket.aiConfidence != null ||
                     ticket.totalPotholes != null ||
@@ -267,6 +358,110 @@ class CitizenTicketDetailScreen extends ConsumerWidget {
     if (diff.inHours < 1) return '${diff.inMinutes}m ago';
     if (diff.inDays < 1) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
+  }
+}
+
+void _openPhotoLightbox(BuildContext context, String imageUrl) {
+  showDialog<void>(
+    context: context,
+    barrierColor: Colors.black87,
+    builder: (ctx) {
+      return Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.contain,
+                placeholder: (_, __) => const Padding(
+                  padding: EdgeInsets.all(48),
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _PhotoCard extends StatelessWidget {
+  const _PhotoCard({
+    required this.imageUrl,
+    required this.onOpen,
+  });
+
+  final String imageUrl;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: AspectRatio(
+                aspectRatio: 16 / 10,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => ColoredBox(
+                    color: cs.surfaceContainerHighest,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (_, __, ___) => ColoredBox(
+                    color: cs.surfaceContainerHighest,
+                    child: Icon(Icons.broken_image_outlined, color: cs.onSurfaceVariant, size: 48),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Material(
+                color: cs.surface.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(999),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.zoom_in_rounded, size: 18, color: cs.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'View full size',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: cs.primary,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

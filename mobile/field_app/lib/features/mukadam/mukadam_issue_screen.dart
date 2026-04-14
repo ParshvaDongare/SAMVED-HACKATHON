@@ -10,7 +10,8 @@ class MukadamIssueScreen extends ConsumerStatefulWidget {
   final String ticketId;
 
   @override
-  ConsumerState<MukadamIssueScreen> createState() => _MukadamIssueScreenState();
+  ConsumerState<MukadamIssueScreen> createState() =>
+      _MukadamIssueScreenState();
 }
 
 class _MukadamIssueScreenState extends ConsumerState<MukadamIssueScreen> {
@@ -18,6 +19,15 @@ class _MukadamIssueScreenState extends ConsumerState<MukadamIssueScreen> {
   String _urgency = 'medium';
   final _notes = TextEditingController();
   bool _busy = false;
+
+  static const _issues = [
+    'Access Blocked',
+    'Rain / Weather',
+    'Material Delay',
+    'Site Mismatch',
+    'Safety Issue',
+    'Other',
+  ];
 
   @override
   void dispose() {
@@ -27,33 +37,41 @@ class _MukadamIssueScreenState extends ConsumerState<MukadamIssueScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final issues = const [
-      'Access Blocked',
-      'Rain/Weather',
-      'Material Delay',
-      'Site Mismatch',
-      'Safety Issue',
-      'Other',
-    ];
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Flag Issue')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text(
+            'Choose the issue blocking the department work gang.',
+            style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: issues
+            spacing: 10,
+            runSpacing: 10,
+            children: _issues
                 .map(
-                  (e) => ChoiceChip(
-                    label: Text(e),
-                    selected: _issue == e,
-                    onSelected: (_) => setState(() => _issue = e),
+                  (item) => ChoiceChip(
+                    label: Text(item),
+                    selected: _issue == item,
+                    onSelected: (_) => setState(() => _issue = item),
+                    backgroundColor: cs.surface,
+                    selectedColor: cs.primaryContainer,
+                    side: BorderSide(color: cs.outlineVariant),
+                    labelStyle: tt.labelLarge?.copyWith(
+                      color:
+                          _issue == item ? cs.onPrimaryContainer : cs.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 )
                 .toList(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           SegmentedButton<String>(
             segments: const [
               ButtonSegment(value: 'low', label: Text('Low')),
@@ -63,34 +81,47 @@ class _MukadamIssueScreenState extends ConsumerState<MukadamIssueScreen> {
             selected: {_urgency},
             onSelectionChanged: (v) => setState(() => _urgency = v.first),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _notes,
             maxLines: 4,
+            onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(
               labelText: 'Notes (min 10 chars)',
+              hintText: 'Explain what is preventing field completion.',
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           FilledButton(
             onPressed: (_busy || _issue == null || _notes.text.trim().length < 10)
                 ? null
                 : () async {
                     setState(() => _busy = true);
-                    await ref.read(ticketEventServiceProvider).insertEvent(
-                          ticketId: widget.ticketId,
-                          actorRole: 'mukadam',
-                          eventType: 'escalation',
-                          notes: '${_issue!}: ${_notes.text.trim()}',
-                          metadata: {'issue_type': _issue, 'urgency': _urgency},
-                        );
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Issue flagged and sent to JE')),
-                    );
-                    context.pop();
+                    try {
+                      await ref.read(ticketEventServiceProvider).insertEvent(
+                            ticketId: widget.ticketId,
+                            actorRole: 'mukadam',
+                            eventType: 'escalation',
+                            notes: '${_issue!}: ${_notes.text.trim()}',
+                            metadata: {
+                              'issue_type': _issue,
+                              'urgency': _urgency,
+                            },
+                          );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Issue flagged and sent to JE'),
+                        ),
+                      );
+                      context.pop();
+                    } finally {
+                      if (mounted) {
+                        setState(() => _busy = false);
+                      }
+                    }
                   },
-            child: const Text('Submit Issue'),
+            child: Text(_busy ? 'Submitting...' : 'Submit Issue'),
           ),
         ],
       ),

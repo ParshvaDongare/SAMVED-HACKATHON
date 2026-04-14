@@ -55,9 +55,9 @@ export default async function JEHistoryPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-              <span className="material-symbols-outlined text-primary" style={{ fontSize: 18 }}>history</span>
-              <h2 className="text-sm font-headline font-extrabold text-primary">Closed Tickets</h2>
+            <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5">
+              <span className="material-symbols-outlined text-primary" style={{ fontSize: 16 }}>history</span>
+              <h2 className="text-xs font-headline font-extrabold text-primary">Closed Tickets</h2>
             </div>
             {closedTickets.length === 0 ? (
               <div className="p-8 text-center text-slate-400">
@@ -66,47 +66,82 @@ export default async function JEHistoryPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full table-fixed border-collapse text-left">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50">
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500">Ref</th>
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500">Location</th>
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500">Severity</th>
-                      <th className="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest text-slate-500">Status</th>
-                      <th className="px-4 py-3 text-center text-[9px] font-black uppercase tracking-widest text-slate-500">SSIM</th>
-                      <th className="px-4 py-3 text-right text-[9px] font-black uppercase tracking-widest text-slate-500">Closed</th>
+                      <th className="w-[12.5rem] whitespace-nowrap px-3 py-2 text-left text-[8px] font-black uppercase tracking-widest text-slate-500">
+                        Ref
+                      </th>
+                      <th className="min-w-0 px-3 py-2 text-left text-[8px] font-black uppercase tracking-widest text-slate-500">
+                        Location
+                      </th>
+                      <th className="w-[5.5rem] whitespace-nowrap px-2 py-2 text-left text-[8px] font-black uppercase tracking-widest text-slate-500">
+                        Severity
+                      </th>
+                      <th className="w-[6.5rem] whitespace-nowrap px-2 py-2 text-center text-[8px] font-black uppercase tracking-widest text-slate-500">
+                        Status
+                      </th>
+                      <th className="w-10 whitespace-nowrap px-1 py-2 text-center text-[8px] font-black uppercase tracking-widest text-slate-500">
+                        SSIM
+                      </th>
+                      <th className="w-[4.25rem] whitespace-nowrap px-2 py-2 text-right text-[8px] font-black uppercase tracking-widest text-slate-500">
+                        Closed
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {closedTickets.map((ticket) => (
                       <tr key={ticket.id} className="group transition-colors hover:bg-slate-50">
-                        <td className="px-4 py-3">
-                          <a href={`/je/history/${ticket.id}`} className="flex items-center gap-1 text-xs font-mono font-bold text-primary hover:underline">
+                        <td className="align-middle px-3 py-1.5">
+                          <a
+                            href={`/je/history/${ticket.id}`}
+                            className="inline-flex items-center gap-0.5 whitespace-nowrap font-mono text-[10px] font-bold leading-none text-primary hover:underline"
+                          >
                             {ticket.ticket_ref}
-                            <span className="material-symbols-outlined text-slate-400 opacity-0 group-hover:opacity-100" style={{ fontSize: 14 }}>
+                            <span
+                              className="material-symbols-outlined shrink-0 text-slate-400 opacity-0 group-hover:opacity-100"
+                              style={{ fontSize: 12 }}
+                            >
                               open_in_new
                             </span>
                           </a>
                         </td>
-                        <td className="px-4 py-3">
-                          <a href={`/je/history/${ticket.id}`} className="max-w-[160px] truncate text-xs font-bold text-slate-800 transition-colors hover:text-primary">
+                        <td className="min-w-0 align-middle px-3 py-1.5">
+                          <a
+                            href={`/je/history/${ticket.id}`}
+                            className="block truncate text-[11px] font-bold leading-snug text-slate-800 transition-colors hover:text-primary"
+                            title={ticket.road_name || ticket.address_text || undefined}
+                          >
                             {ticket.road_name || ticket.address_text || '-'}
                           </a>
                         </td>
-                        <td className="px-4 py-3">
-                          {ticket.severity_tier && <SeverityBadge tier={ticket.severity_tier} />}
+                        <td className="align-middle px-2 py-1.5">
+                          {ticket.severity_tier && (
+                            <SeverityBadge
+                              tier={ticket.severity_tier}
+                              className="!px-1.5 !py-0.5 !text-[8px] [&_.material-symbols-outlined]:!text-[10px]"
+                            />
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <StatusPill status={ticket.status} />
+                        <td className="align-middle px-2 py-1.5 text-center">
+                          <StatusPill
+                            status={ticket.status}
+                            className="!px-1.5 !py-0.5 !text-[8px] [&_.material-symbols-outlined]:!text-[10px]"
+                          />
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="align-middle px-1 py-1.5 text-center">
                           {ticket.ssim_pass !== null ? (
-                            <span className={`material-symbols-outlined text-sm ${ticket.ssim_pass ? 'text-green-600' : 'text-red-500'}`}>
+                            <span
+                              className={`material-symbols-outlined align-middle ${ticket.ssim_pass ? 'text-green-600' : 'text-red-500'}`}
+                              style={{ fontSize: 16 }}
+                            >
                               {ticket.ssim_pass ? 'verified' : 'cancel'}
                             </span>
-                          ) : <span className="text-xs text-slate-300">-</span>}
+                          ) : (
+                            <span className="text-[10px] text-slate-300">-</span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-right text-[10px] font-medium text-slate-400">
+                        <td className="align-middle px-2 py-1.5 text-right text-[9px] font-medium tabular-nums leading-none text-slate-500">
                           {timeAgo(ticket.updated_at)}
                         </td>
                       </tr>

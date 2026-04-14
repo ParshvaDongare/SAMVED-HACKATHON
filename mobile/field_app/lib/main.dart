@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
 import 'core/config/app_env.dart';
+import 'core/locale/locale_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,8 @@ Future<void> main() async {
     url: AppEnv.supabaseUrl,
     anonKey: AppEnv.supabaseAnonKey,
   );
+
+  await LocaleBootstrap.loadFromPrefs();
 
   runApp(
     const ProviderScope(

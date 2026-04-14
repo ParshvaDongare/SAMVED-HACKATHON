@@ -14,7 +14,6 @@ class JeProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _JeProfileScreenState extends ConsumerState<JeProfileScreen> {
-  bool _mr = false;
   bool _notifTicket = true;
   bool _notifEscalation = true;
 
@@ -28,7 +27,6 @@ class _JeProfileScreenState extends ConsumerState<JeProfileScreen> {
     final p = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      _mr = p.getBool('je_lang_mr') ?? false;
       _notifTicket = p.getBool('je_notif_ticket') ?? true;
       _notifEscalation = p.getBool('je_notif_escalation') ?? true;
     });
@@ -73,33 +71,25 @@ class _JeProfileScreenState extends ConsumerState<JeProfileScreen> {
           _tileCard(
             context,
             child: SwitchListTile(
-            title: const Text('Language: Marathi'),
-            value: _mr,
-            onChanged: (v) {
-              setState(() => _mr = v);
-              _save('je_lang_mr', v);
-            },
-          )),
+              title: const Text('New ticket alerts'),
+              value: _notifTicket,
+              onChanged: (v) {
+                setState(() => _notifTicket = v);
+                _save('je_notif_ticket', v);
+              },
+            ),
+          ),
           _tileCard(
             context,
             child: SwitchListTile(
-            title: const Text('New ticket alerts'),
-            value: _notifTicket,
-            onChanged: (v) {
-              setState(() => _notifTicket = v);
-              _save('je_notif_ticket', v);
-            },
-          )),
-          _tileCard(
-            context,
-            child: SwitchListTile(
-            title: const Text('Escalation alerts'),
-            value: _notifEscalation,
-            onChanged: (v) {
-              setState(() => _notifEscalation = v);
-              _save('je_notif_escalation', v);
-            },
-          )),
+              title: const Text('Escalation alerts'),
+              value: _notifEscalation,
+              onChanged: (v) {
+                setState(() => _notifEscalation = v);
+                _save('je_notif_escalation', v);
+              },
+            ),
+          ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () async {

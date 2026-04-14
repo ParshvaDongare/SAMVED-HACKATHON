@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../l10n/app_localizations.dart';
 import '../features/auth/blocked_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/official_login_screen.dart';
@@ -97,15 +98,25 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/citizen/ai-result',
-        builder: (_, state) => AiResultScreen(
-          args: state.extra! as AiResultArgs,
-        ),
+        builder: (_, state) {
+          final args = AiResultDraftCache.get();
+          if (args == null) {
+            return const ReportDamageScreen();
+          }
+          return AiResultScreen(args: args);
+        },
       ),
       GoRoute(
         path: '/citizen/confirmation',
-        builder: (_, state) => ConfirmationScreen(
-          args: state.extra! as ConfirmationArgs,
-        ),
+        builder: (_, state) {
+          final args = state.extra as ConfirmationArgs?;
+          if (args == null) {
+            return const Scaffold(
+              body: Center(child: Text('Missing confirmation payload. Open from Report flow.')),
+            );
+          }
+          return ConfirmationScreen(args: args);
+        },
       ),
       GoRoute(
         path: '/citizen/tracker',
@@ -161,36 +172,39 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         redirect: (_, __) => '/contractor/work-orders',
       ),
       ShellRoute(
-        builder: (context, state, child) => RoleShellScaffold(
-          activeLocationPrefix: '/citizen',
-          items: const [
-            ShellNavItem(
-              label: 'Home',
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-              location: '/citizen/home',
-            ),
-            ShellNavItem(
-              label: 'Report',
-              icon: Icons.add_circle_outline_rounded,
-              activeIcon: Icons.add_circle_rounded,
-              location: '/citizen/report',
-            ),
-            ShellNavItem(
-              label: 'Track',
-              icon: Icons.analytics_outlined,
-              activeIcon: Icons.analytics_rounded,
-              location: '/citizen/track',
-            ),
-            ShellNavItem(
-              label: 'Profile',
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-              location: '/citizen/profile',
-            ),
-          ],
-          child: child,
-        ),
+        builder: (context, state, child) {
+          final l10n = AppLocalizations.of(context)!;
+          return RoleShellScaffold(
+            activeLocationPrefix: '/citizen',
+            items: [
+              ShellNavItem(
+                label: l10n.navHome,
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                location: '/citizen/home',
+              ),
+              ShellNavItem(
+                label: l10n.navReport,
+                icon: Icons.add_circle_outline_rounded,
+                activeIcon: Icons.add_circle_rounded,
+                location: '/citizen/report',
+              ),
+              ShellNavItem(
+                label: l10n.navTrack,
+                icon: Icons.analytics_outlined,
+                activeIcon: Icons.analytics_rounded,
+                location: '/citizen/track',
+              ),
+              ShellNavItem(
+                label: l10n.navProfile,
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                location: '/citizen/profile',
+              ),
+            ],
+            child: child,
+          );
+        },
         routes: [
           GoRoute(
             path: '/citizen/home',

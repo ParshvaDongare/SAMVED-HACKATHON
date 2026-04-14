@@ -9,8 +9,8 @@ import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/theme/theme.dart';
-import '../../core/utils/image_source_sheet.dart';
 import '../../core/widgets/gradient_primary_button.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/providers.dart';
 import 'ai_result_screen.dart';
 
@@ -40,6 +40,19 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
     'crack',
     'surface_failure',
   ];
+
+  static String _damageLabel(AppLocalizations l10n, String key) {
+    switch (key) {
+      case 'pothole':
+        return l10n.damagePothole;
+      case 'crack':
+        return l10n.damageCrack;
+      case 'surface_failure':
+        return l10n.damageSurfaceFailure;
+      default:
+        return key.replaceAll('_', ' ');
+    }
+  }
 
   @override
   void dispose() {
@@ -74,14 +87,6 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
     });
   }
 
-  Future<void> _pickPhoto() async {
-    final source = kIsWeb
-        ? ImageSource.gallery
-        : await pickImageSourceForNative(context);
-    if (source == null) return;
-    await _pickPhotoFrom(source);
-  }
-
   Future<void> _getLocation() async {
     final loc = ref.read(locationServiceProvider);
     final ok = await loc.ensureLocationPermission();
@@ -100,22 +105,21 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _error = null;
       _loading = true;
     });
     if (_photoBytes == null) {
       setState(() {
-        _error = kIsWeb
-            ? 'Choose a photo for the damage (browser testing uses gallery).'
-            : 'Take or choose a photo of the damage.';
+        _error = kIsWeb ? l10n.errorPhotoRequiredWeb : l10n.errorPhotoRequired;
         _loading = false;
       });
       return;
     }
     if (_lat == null || _lng == null) {
       setState(() {
-        _error = 'GPS location is required.';
+        _error = l10n.errorGpsRequired;
         _loading = false;
       });
       return;
@@ -123,18 +127,17 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
 
     try {
       if (!mounted) return;
-      context.push(
-        '/citizen/ai-result',
-        extra: AiResultArgs(
-          imageBytes: _photoBytes!,
-          fileExtension: _photoExt,
-          latitude: _lat!,
-          longitude: _lng!,
-          addressText: _address.text.trim().isEmpty ? null : _address.text.trim(),
-          nearestLandmark: _landmark.text.trim().isEmpty ? null : _landmark.text.trim(),
-          damageType: _damageType,
-        ),
+      final args = AiResultArgs(
+        imageBytes: _photoBytes!,
+        fileExtension: _photoExt,
+        latitude: _lat!,
+        longitude: _lng!,
+        addressText: _address.text.trim().isEmpty ? null : _address.text.trim(),
+        nearestLandmark: _landmark.text.trim().isEmpty ? null : _landmark.text.trim(),
+        damageType: _damageType,
       );
+      AiResultDraftCache.set(args);
+      context.push('/citizen/ai-result');
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -144,12 +147,13 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Report damage'),
+        title: Text(l10n.reportDamageTitle),
         foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppDesign.navyGradient),
@@ -175,7 +179,7 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Citizen report',
+                  l10n.citizenReportHeader,
                   style: tt.labelLarge?.copyWith(
                     color: Colors.white.withValues(alpha: 0.88),
                     fontWeight: FontWeight.w700,
@@ -184,7 +188,7 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Capture damage, attach GPS, and submit instantly.',
+                  l10n.citizenReportSubtitle,
                   style: tt.titleMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -195,36 +199,43 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
           ),
           const SizedBox(height: 16),
           if (_cameraDenied) ...[
-            _errorCard(
-              context,
-              'Camera permission denied. Enable it in Settings to capture evidence.',
-            ),
+            _errorCard(context, l10n.cameraDenied),
             const SizedBox(height: 12),
           ],
           if (_locationDenied) ...[
-            _errorCard(
-              context,
-              'Location permission denied. GPS is mandatory for report routing.',
-            ),
+            _errorCard(context, l10n.locationDenied),
             const SizedBox(height: 12),
           ],
           _surfaceCard(
             context,
             child: Column(
               children: [
-                OutlinedButton.icon(
-                  onPressed: _pickPhoto,
-                  icon: Icon(
-                    kIsWeb
-                        ? Icons.photo_library_outlined
-                        : Icons.photo_camera_outlined,
+                if (kIsWeb)
+                  OutlinedButton.icon(
+                    onPressed: () => _pickPhotoFrom(ImageSource.gallery),
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: Text(_photoBytes == null ? l10n.choosePhoto : l10n.changePhoto),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _pickPhotoFrom(ImageSource.camera),
+                          icon: const Icon(Icons.photo_camera_outlined),
+                          label: Text(_photoBytes == null ? l10n.takePhoto : l10n.retakePhoto),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _pickPhotoFrom(ImageSource.gallery),
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: Text(l10n.choosePhoto),
+                        ),
+                      ),
+                    ],
                   ),
-                  label: Text(
-                    _photoBytes == null
-                        ? (kIsWeb ? 'Choose photo' : 'Take photo')
-                        : (kIsWeb ? 'Change photo' : 'Retake photo'),
-                  ),
-                ),
                 if (_photoBytes != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 14),
@@ -249,8 +260,11 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
               icon: const Icon(Icons.my_location_outlined),
               label: Text(
                 _lat == null
-                    ? 'Get GPS location'
-                    : 'GPS: ${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)}',
+                    ? l10n.getGpsLocation
+                    : l10n.gpsCoordinates(
+                        _lat!.toStringAsFixed(5),
+                        _lng!.toStringAsFixed(5),
+                      ),
               ),
             ),
           ),
@@ -260,12 +274,12 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
             child: Column(
               children: [
                 DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'Damage type'),
+                  decoration: InputDecoration(labelText: l10n.damageType),
                   items: _damageTypes
                       .map(
                         (e) => DropdownMenuItem(
                           value: e,
-                          child: Text(e.replaceAll('_', ' ')),
+                          child: Text(_damageLabel(l10n, e)),
                         ),
                       )
                       .toList(),
@@ -275,13 +289,13 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: _address,
-                  decoration: const InputDecoration(labelText: 'Address / area'),
+                  decoration: InputDecoration(labelText: l10n.addressArea),
                   maxLines: 2,
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _landmark,
-                  decoration: const InputDecoration(labelText: 'Nearest landmark'),
+                  decoration: InputDecoration(labelText: l10n.nearestLandmark),
                 ),
               ],
             ),
@@ -293,7 +307,7 @@ class _ReportDamageScreenState extends ConsumerState<ReportDamageScreen> {
           const SizedBox(height: 24),
           GradientPrimaryButton(
             onPressed: _loading ? null : _submit,
-            label: 'Continue to AI review',
+            label: l10n.continueToAi,
             icon: Icons.arrow_forward_rounded,
             loading: _loading,
           ),

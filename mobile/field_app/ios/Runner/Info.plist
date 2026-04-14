@@ -6,6 +6,11 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>mr</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Road Nirman Field</string>
 	<key>CFBundleExecutable</key>

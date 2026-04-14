@@ -199,35 +199,64 @@ class _JeMeasureScreenState extends ConsumerState<JeMeasureScreen> {
             child: Column(
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Pothole dimensions',
-                      style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                    Expanded(
+                      child: Text(
+                        'Pothole dimensions',
+                        style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: Text('#${widget.ticketId.substring(0, 4)}'),
+                      child: Text(
+                        '#${widget.ticketId.length >= 4 ? widget.ticketId.substring(0, 4) : widget.ticketId}',
+                        style: tt.labelSmall,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<RateCard>(
-                  decoration: const InputDecoration(labelText: 'Work type (rate card)'),
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Work type (rate card)',
+                    isDense: true,
+                    alignLabelWithHint: true,
+                  ),
                   items: _cards
                       .map(
                         (c) => DropdownMenuItem(
                           value: c,
-                          child: Text('${c.workType} (${c.ratePerUnit} / ${c.unit})'),
+                          child: Text(
+                            '${c.workType} (${c.ratePerUnit} / ${c.unit})',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  selectedItemBuilder: (context) => _cards
+                      .map(
+                        (c) => Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Text(
+                            '${c.workType} (${c.ratePerUnit} / ${c.unit})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       )
                       .toList(),
                   onChanged: (v) => setState(() => _card = v),
-                  initialValue: _card,
+                  // Controlled selection; `value` is still the correct API for DropdownButtonFormField.
+                  // ignore: deprecated_member_use
+                  value: _card,
                 ),
                 const SizedBox(height: 12),
                 TextField(

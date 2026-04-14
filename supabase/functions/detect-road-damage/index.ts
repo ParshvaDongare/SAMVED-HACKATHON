@@ -22,6 +22,9 @@ type DetectResponse = {
   total_potholes: number;
   bounding_boxes: unknown[];
   ai_severity_index: number;
+  epdo_score: number;
+  severity_tier: string;
+  sla_hours: number;
   ai_source: string;
   model_version: string;
   processing_ms: number;
@@ -75,12 +78,12 @@ serve(async (req) => {
       ? await getVisibleTicket(
         adminClient,
         payload.ticket_id,
-        "id, ticket_ref, source_channel, photo_before",
+        "id, ticket_ref, source_channel, photo_before, latitude, longitude",
       )
       : await getVisibleTicket(
         createUserClient(req),
         payload.ticket_id,
-        "id, ticket_ref, source_channel, photo_before",
+        "id, ticket_ref, source_channel, photo_before, latitude, longitude",
       );
 
     if (!visibleTicket) {
@@ -103,6 +106,8 @@ serve(async (req) => {
         payload.source_channel ??
         (visibleTicket.source_channel as string | null) ??
         "app",
+      lat: (visibleTicket.latitude as number | null) ?? null,
+      lng: (visibleTicket.longitude as number | null) ?? null,
     });
 
     if (!ai.success) {
@@ -115,6 +120,9 @@ serve(async (req) => {
       total_potholes: ai.total_potholes,
       ai_bounding_boxes: ai.bounding_boxes,
       ai_severity_index: ai.ai_severity_index,
+      epdo_score: ai.epdo_score,
+      severity_tier: ai.severity_tier,
+      sla_hours: ai.sla_hours,
       ai_source: ai.ai_source,
     };
 
@@ -123,7 +131,7 @@ serve(async (req) => {
       .update(patch)
       .eq("id", payload.ticket_id)
       .select(
-        "id, ticket_ref, damage_type, ai_confidence, total_potholes, ai_bounding_boxes, ai_severity_index, ai_source, updated_at",
+        "id, ticket_ref, damage_type, ai_confidence, total_potholes, ai_bounding_boxes, ai_severity_index, epdo_score, severity_tier, sla_hours, ai_source, updated_at",
       )
       .single();
 
@@ -142,6 +150,9 @@ serve(async (req) => {
         ai_confidence: ai.ai_confidence,
         total_potholes: ai.total_potholes,
         ai_severity_index: ai.ai_severity_index,
+        epdo_score: ai.epdo_score,
+        severity_tier: ai.severity_tier,
+        sla_hours: ai.sla_hours,
         ai_source: ai.ai_source,
         model_version: ai.model_version,
         processing_ms: ai.processing_ms,

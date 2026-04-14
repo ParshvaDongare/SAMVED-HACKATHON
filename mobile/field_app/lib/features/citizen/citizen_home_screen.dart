@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/theme/theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/widgets/citizen_ticket_card.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/error_state.dart';
@@ -25,16 +26,32 @@ class CitizenHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<String?>(citizenPostSubmitBannerProvider, (previous, next) {
+      if (next == null) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        ref.read(citizenPostSubmitBannerProvider.notifier).state = null;
+      });
+    });
+
     final ticketsAsync = ref.watch(citizenTicketsProvider);
     final profileAsync = ref.watch(profileProvider);
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
     if (initialProfileOnly) {
+      final l10nP = AppLocalizations.of(context)!;
       return Scaffold(
         appBar: ProfileAppBar(
-          greeting: 'Citizen account',
-          name: profileAsync.value?.fullName ?? 'User',
+          greeting: l10nP.profileAccountGreeting,
+          name: profileAsync.value?.fullName ?? l10nP.citizenFallbackName,
           subtitle: profileAsync.value?.phone ?? '',
           actions: [
             IconButton(
@@ -49,11 +66,15 @@ class CitizenHomeScreen extends ConsumerWidget {
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            _CitizenSummaryCard(openCount: 0, resolvedCount: 0),
+            _CitizenSummaryCard(
+              openCount: 0,
+              resolvedCount: 0,
+              l10n: l10nP,
+            ),
             const SizedBox(height: 14),
-            const EmptyState(
-              title: 'Profile tools',
-              subtitle: 'Language and profile controls are coming soon.',
+            EmptyState(
+              title: l10nP.profileToolsTitle,
+              subtitle: l10nP.profileToolsSubtitle,
               icon: Icons.person_outline_rounded,
             ),
           ],
@@ -69,6 +90,7 @@ class CitizenHomeScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(citizenTicketsProvider),
         ),
         data: (tickets) {
+          final l10n = AppLocalizations.of(context)!;
           if (tickets.isEmpty) {
             return CustomScrollView(
               slivers: [
@@ -81,10 +103,10 @@ class CitizenHomeScreen extends ConsumerWidget {
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                         child: _HeroReportCard(onReport: () => context.push('/citizen/report')),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: EmptyState(
-                          title: 'No reports yet',
-                          subtitle: 'Use Report Damage to log road issues near you.',
+                          title: l10n.noReportsYet,
+                          subtitle: l10n.noReportsSubtitle,
                           icon: Icons.map_outlined,
                         ),
                       ),
@@ -145,6 +167,7 @@ class CitizenHomeScreen extends ConsumerWidget {
                       child: _CitizenSummaryCard(
                         openCount: openCount,
                         resolvedCount: resolvedCount,
+                        l10n: l10n,
                       ),
                     ),
                   ),
@@ -156,7 +179,7 @@ class CitizenHomeScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'Recent grievances',
+                          l10n.recentGrievances,
                           style: tt.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: cs.primary,
@@ -165,7 +188,9 @@ class CitizenHomeScreen extends ConsumerWidget {
                         TextButton(
                           onPressed: () => context.go('/citizen/track'),
                           child: Text(
-                            initialTrackOnly ? '${tickets.length} total' : 'View all',
+                            initialTrackOnly
+                                ? l10n.totalCount(tickets.length)
+                                : l10n.viewAll,
                             style: tt.labelLarge?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: cs.primary.withValues(alpha: 0.85),
@@ -226,6 +251,8 @@ class CitizenHomeScreen extends ConsumerWidget {
 
   Widget _appBarSliver(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final loc = Localizations.localeOf(context);
     final profileAsync = ref.watch(profileProvider);
     final profile = profileAsync.value;
     return SliverAppBar(
@@ -255,13 +282,13 @@ class CitizenHomeScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'नमस्कार',
+                  loc.languageCode == 'mr' ? l10n.greetingNamaste : l10n.greetingHello,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
                 ),
                 Text(
-                  profile?.fullName ?? 'Citizen',
+                  profile?.fullName ?? l10n.citizenFallbackName,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: cs.primary,
@@ -275,8 +302,30 @@ class CitizenHomeScreen extends ConsumerWidget {
       actions: [
         IconButton(
           icon: const Icon(Icons.notifications_outlined),
-          onPressed: () {},
-          tooltip: 'Notifications',
+          onPressed: () {
+            showModalBottomSheet<void>(
+              context: context,
+              showDragHandle: true,
+              builder: (ctx) => Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.notificationsSheetTitle,
+                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(l10n.notificationsSheetBody),
+                  ],
+                ),
+              ),
+            );
+          },
+          tooltip: l10n.notificationsTooltip,
         ),
       ],
     );
@@ -290,6 +339,7 @@ class _HeroReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
@@ -342,7 +392,7 @@ class _HeroReportCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    'QUICK ACTION',
+                    l10n.quickAction.toUpperCase(),
                     style: tt.labelSmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -352,7 +402,7 @@ class _HeroReportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Spot a pothole?',
+                  l10n.spotPothole,
                   style: tt.headlineMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -361,7 +411,7 @@ class _HeroReportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Report it in under a minute',
+                  l10n.reportUnderMinute,
                   style: tt.titleMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.88),
                     fontWeight: FontWeight.w500,
@@ -371,7 +421,7 @@ class _HeroReportCard extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onReport,
                   icon: const Icon(Icons.add_a_photo),
-                  label: const Text('Report damage'),
+                  label: Text(l10n.reportDamage),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: cs.primary,
@@ -399,10 +449,12 @@ class _CitizenSummaryCard extends StatelessWidget {
   const _CitizenSummaryCard({
     required this.openCount,
     required this.resolvedCount,
+    required this.l10n,
   });
 
   final int openCount;
   final int resolvedCount;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -422,7 +474,7 @@ class _CitizenSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'CITIZEN SUMMARY',
+            l10n.citizenSummary.toUpperCase(),
             style: tt.labelSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: cs.primary,
@@ -437,7 +489,7 @@ class _CitizenSummaryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Open complaints',
+                      l10n.openComplaints,
                       style: tt.labelMedium?.copyWith(
                         color: cs.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
@@ -484,7 +536,7 @@ class _CitizenSummaryCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Resolved',
+                        l10n.resolved,
                         style: tt.labelMedium?.copyWith(
                           color: cs.onSurfaceVariant,
                           fontWeight: FontWeight.w600,

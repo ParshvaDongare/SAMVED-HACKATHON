@@ -14,7 +14,6 @@ class ConnectivityBanner extends StatefulWidget {
 
 class _ConnectivityBannerState extends State<ConnectivityBanner>
     with SingleTickerProviderStateMixin {
-  bool _offline = false;
   late final AnimationController _controller;
   late final Animation<double> _slideAnimation;
 
@@ -32,13 +31,11 @@ class _ConnectivityBannerState extends State<ConnectivityBanner>
     Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> r) {
       final offline = r.isEmpty ||
           r.every((e) => e == ConnectivityResult.none);
-      if (mounted) {
-        setState(() => _offline = offline);
-        if (offline) {
-          _controller.forward();
-        } else {
-          _controller.reverse();
-        }
+      if (!mounted) return;
+      if (offline) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
       }
     });
     _check();
@@ -48,9 +45,11 @@ class _ConnectivityBannerState extends State<ConnectivityBanner>
     final r = await Connectivity().checkConnectivity();
     final offline =
         r.isEmpty || r.every((e) => e == ConnectivityResult.none);
-    if (mounted) {
-      setState(() => _offline = offline);
-      if (offline) _controller.forward();
+    if (!mounted) return;
+    if (offline) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
     }
   }
 

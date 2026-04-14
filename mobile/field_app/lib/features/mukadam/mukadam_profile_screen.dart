@@ -15,7 +15,6 @@ class MukadamProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _MukadamProfileScreenState extends ConsumerState<MukadamProfileScreen> {
-  bool _mr = false;
   bool _notif = true;
 
   @override
@@ -28,7 +27,6 @@ class _MukadamProfileScreenState extends ConsumerState<MukadamProfileScreen> {
     final p = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      _mr = p.getBool('mukadam_lang_mr') ?? false;
       _notif = p.getBool('mukadam_notif') ?? true;
     });
   }
@@ -74,25 +72,15 @@ class _MukadamProfileScreenState extends ConsumerState<MukadamProfileScreen> {
           _tileCard(
             context,
             child: SwitchListTile(
-            title: const Text('Language: Marathi'),
-            value: _mr,
-            onChanged: (v) async {
-              final p = await SharedPreferences.getInstance();
-              await p.setBool('mukadam_lang_mr', v);
-              setState(() => _mr = v);
-            },
-          )),
-          _tileCard(
-            context,
-            child: SwitchListTile(
-            title: const Text('Notifications'),
-            value: _notif,
-            onChanged: (v) async {
-              final p = await SharedPreferences.getInstance();
-              await p.setBool('mukadam_notif', v);
-              setState(() => _notif = v);
-            },
-          )),
+              title: const Text('Notifications'),
+              value: _notif,
+              onChanged: (v) async {
+                final p = await SharedPreferences.getInstance();
+                await p.setBool('mukadam_notif', v);
+                setState(() => _notif = v);
+              },
+            ),
+          ),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: () async {
