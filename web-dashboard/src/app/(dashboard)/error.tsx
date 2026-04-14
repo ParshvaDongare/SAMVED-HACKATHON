@@ -10,12 +10,25 @@ interface DashboardErrorProps {
 }
 
 export default function DashboardError({ error, reset }: DashboardErrorProps) {
+  const isChunkLoadError =
+    /Loading chunk [\w-]+ failed|ChunkLoadError|Failed to fetch dynamically imported module/i.test(
+      error.message || ''
+    );
+
   useEffect(() => {
     logDashboardError(error, {
       scope: 'dashboard-segment',
       digest: error.digest,
     });
   }, [error]);
+
+  useEffect(() => {
+    if (!isChunkLoadError) return;
+    const markerKey = 'rn:chunk-reload-once';
+    if (sessionStorage.getItem(markerKey) === '1') return;
+    sessionStorage.setItem(markerKey, '1');
+    window.location.reload();
+  }, [isChunkLoadError]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6">
@@ -55,6 +68,15 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>refresh</span>
             Try Again
           </button>
+          {isChunkLoadError && (
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 border border-amber-300 bg-amber-50 text-amber-900 text-sm font-bold rounded-lg hover:bg-amber-100 transition-all"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>cached</span>
+              Hard Reload
+            </button>
+          )}
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-200 bg-white text-slate-700 text-sm font-bold rounded-lg hover:bg-slate-50 transition-all"
