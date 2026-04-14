@@ -6,6 +6,9 @@ models/*.pt
 .VSCode/
 .cursor/
 .codex-tmp/
+node_modules/
+.next/
+dist/
 supabase/node_modules/
 supabase/.temp/
 mobile/field_app/build_apk_log.txt
